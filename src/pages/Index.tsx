@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import FloorPlanViewer from "@/components/FloorPlanViewer";
 import DetailSidebar from "@/components/DetailSidebar";
 import { Leaf } from "lucide-react";
@@ -12,6 +12,12 @@ const supabase = createClient(
 const Index = () => {
   const [floorPlanSrc, setFloorPlanSrc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load saved image URL on page load
+  useEffect(() => {
+    const savedUrl = localStorage.getItem("floorPlanUrl");
+    if (savedUrl) setFloorPlanSrc(savedUrl);
+  }, []);
 
   const handleUpload = () => fileInputRef.current?.click();
 
@@ -34,6 +40,8 @@ const Index = () => {
       .from("images")
       .getPublicUrl(fileName);
 
+    // Save URL to localStorage so it persists on refresh
+    localStorage.setItem("floorPlanUrl", data.publicUrl);
     setFloorPlanSrc(data.publicUrl);
   };
 
