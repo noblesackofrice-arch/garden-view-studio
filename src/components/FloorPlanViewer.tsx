@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { Plus, Move, Trash2, Edit2, X, Check, Upload } from "lucide-react";
+import { Plus, Move, Trash2, Edit2, X, Check, Upload, Copy } from "lucide-react";
 import type { Hotspot } from "@/types/floorplan";
 import hotspotLiving from "@/assets/hotspot-living.jpg";
 import hotspotKitchen from "@/assets/hotspot-kitchen.jpg";
