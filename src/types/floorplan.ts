@@ -5,6 +5,7 @@ export interface Hotspot {
   title: string;
   description: string;
   image: string | null;
+  displayNumber?: number;
 }
 
 export interface SidebarSection {

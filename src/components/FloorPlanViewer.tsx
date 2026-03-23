@@ -212,7 +212,7 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
               }}
               onMouseDown={(e) => handleMouseDown(e, h.id)}
             >
-              <span className="text-[10px] font-bold text-primary-foreground leading-none select-none">{index + 1}</span>
+              <span className="text-[10px] font-bold text-primary-foreground leading-none select-none">{h.displayNumber ?? index + 1}</span>
             </button>
           ))}
         </div>
