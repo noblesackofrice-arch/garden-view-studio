@@ -286,7 +286,7 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
                       />
                     </label>
                     <button
-                      onClick={() => cloneHotspot(activeHotspot)}
+                      onClick={() => cloneHotspot(activeHotspot, hotspots.indexOf(activeHotspot))}
                       className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95"
                     >
                       <Copy className="w-3 h-3" /> Clone
