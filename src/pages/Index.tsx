@@ -3,7 +3,6 @@ import FloorPlanViewer from "@/components/FloorPlanViewer";
 import DetailSidebar from "@/components/DetailSidebar";
 import { Leaf } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-);
 
 const Index = () => {
   const [floorPlanSrc, setFloorPlanSrc] = useState<string | null>(null);
