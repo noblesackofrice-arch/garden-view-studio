@@ -122,13 +122,14 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
     setActiveId(null);
   };
 
-  const cloneHotspot = (h: Hotspot) => {
+  const cloneHotspot = (h: Hotspot, originalIndex: number) => {
     const cloned: Hotspot = {
       ...h,
       id: Date.now().toString(),
       x: Math.min(h.x + 5, 95),
       y: Math.min(h.y + 5, 95),
       title: `${h.title} (copy)`,
+      displayNumber: h.displayNumber ?? originalIndex + 1,
     };
     setHotspots((prev) => [...prev, cloned]);
     setActiveId(cloned.id);
@@ -211,7 +212,7 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
               }}
               onMouseDown={(e) => handleMouseDown(e, h.id)}
             >
-              <span className="text-[10px] font-bold text-primary-foreground leading-none select-none">{index + 1}</span>
+              <span className="text-[10px] font-bold text-primary-foreground leading-none select-none">{h.displayNumber ?? index + 1}</span>
             </button>
           ))}
         </div>
@@ -285,7 +286,7 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
                       />
                     </label>
                     <button
-                      onClick={() => cloneHotspot(activeHotspot)}
+                      onClick={() => cloneHotspot(activeHotspot, hotspots.indexOf(activeHotspot))}
                       className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95"
                     >
                       <Copy className="w-3 h-3" /> Clone
