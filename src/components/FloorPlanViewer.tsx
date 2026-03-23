@@ -182,10 +182,10 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
           )}
 
           {/* Hotspot markers */}
-          {hotspots.map((h) => (
+          {hotspots.map((h, index) => (
             <button
               key={h.id}
-              className={`absolute w-7 h-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-all duration-200 z-10
+              className={`absolute w-7 h-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-all duration-200 z-10 flex items-center justify-center
                 ${activeId === h.id
                   ? "bg-garden-terracotta border-garden-terracotta scale-125 shadow-lg"
                   : "bg-garden-moss border-garden-leaf hotspot-pulse hover:scale-110"
@@ -199,7 +199,7 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
               }}
               onMouseDown={(e) => handleMouseDown(e, h.id)}
             >
-              <span className="sr-only">{h.title}</span>
+              <span className="text-[10px] font-bold text-primary-foreground leading-none select-none">{index + 1}</span>
             </button>
           ))}
         </div>
