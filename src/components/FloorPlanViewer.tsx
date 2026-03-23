@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { Plus, Move, Trash2, Edit2, X, Check, Upload } from "lucide-react";
+import { Plus, Move, Trash2, Edit2, X, Check, Upload, Copy } from "lucide-react";
 import type { Hotspot } from "@/types/floorplan";
 import hotspotLiving from "@/assets/hotspot-living.jpg";
 import hotspotKitchen from "@/assets/hotspot-kitchen.jpg";
@@ -120,6 +120,18 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
   const deleteHotspot = (id: string) => {
     setHotspots((prev) => prev.filter((h) => h.id !== id));
     setActiveId(null);
+  };
+
+  const cloneHotspot = (h: Hotspot) => {
+    const cloned: Hotspot = {
+      ...h,
+      id: Date.now().toString(),
+      x: Math.min(h.x + 5, 95),
+      y: Math.min(h.y + 5, 95),
+      title: `${h.title} (copy)`,
+    };
+    setHotspots((prev) => [...prev, cloned]);
+    setActiveId(cloned.id);
   };
 
   const handleHotspotImageUpload = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -272,6 +284,12 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
                         onChange={(e) => handleHotspotImageUpload(activeHotspot.id, e)}
                       />
                     </label>
+                    <button
+                      onClick={() => cloneHotspot(activeHotspot)}
+                      className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95"
+                    >
+                      <Copy className="w-3 h-3" /> Clone
+                    </button>
                     <button
                       onClick={() => deleteHotspot(activeHotspot.id)}
                       className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-destructive/10 text-destructive hover:bg-destructive/20 active:scale-95 ml-auto"
