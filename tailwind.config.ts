@@ -13,6 +13,10 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['DM Sans', 'sans-serif'],
+        display: ['DM Serif Display', 'serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -46,6 +50,15 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        garden: {
+          leaf: "hsl(var(--garden-leaf))",
+          moss: "hsl(var(--garden-moss))",
+          sage: "hsl(var(--garden-sage))",
+          earth: "hsl(var(--garden-earth))",
+          terracotta: "hsl(var(--garden-terracotta))",
+          cream: "hsl(var(--garden-cream))",
+          linen: "hsl(var(--garden-linen))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
