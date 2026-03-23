@@ -1,45 +1,12 @@
-import { useState, useRef, useCallback } from "react";
-import { Plus, Move, Trash2, Edit2, X, Check, Upload, Copy } from "lucide-react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { Plus, Trash2, Edit2, X, Check, Upload, Copy } from "lucide-react";
 import type { Hotspot } from "@/types/floorplan";
-import hotspotLiving from "@/assets/hotspot-living.jpg";
-import hotspotKitchen from "@/assets/hotspot-kitchen.jpg";
-import hotspotGarden from "@/assets/hotspot-garden.jpg";
-import hotspotStudy from "@/assets/hotspot-study.jpg";
+import { createClient } from "@supabase/supabase-js";
 
-const DEFAULT_HOTSPOTS: Hotspot[] = [
-  {
-    id: "1",
-    x: 30,
-    y: 35,
-    title: "Living Room",
-    description: "Open-plan living with exposed timber beams, natural light, and views to the garden.",
-    image: hotspotLiving,
-  },
-  {
-    id: "2",
-    x: 65,
-    y: 30,
-    title: "Kitchen",
-    description: "Warm wood cabinetry with marble surfaces and an herb garden at the window.",
-    image: hotspotKitchen,
-  },
-  {
-    id: "3",
-    x: 50,
-    y: 70,
-    title: "Garden Patio",
-    description: "Stone pathways weaving through climbing vines and lantern-lit seating.",
-    image: hotspotGarden,
-  },
-  {
-    id: "4",
-    x: 20,
-    y: 65,
-    title: "Study",
-    description: "A quiet workspace bathed in natural light with built-in bookshelves.",
-    image: hotspotStudy,
-  },
-];
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 interface Props {
   floorPlanSrc: string | null;
@@ -47,13 +14,44 @@ interface Props {
 }
 
 export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Props) {
-  const [hotspots, setHotspots] = useState<Hotspot[]>(DEFAULT_HOTSPOTS);
+  const [hotspots, setHotspots] = useState<Hotspot[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ title: "", description: "" });
   const [isAdding, setIsAdding] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Load hotspots from Supabase on mount
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase.from("hotspots").select("*");
+      if (data) {
+        setHotspots(data.map((h) => ({
+          id: h.id,
+          x: h.x,
+          y: h.y,
+          title: h.title,
+          description: h.description,
+          image: h.image,
+          displayNumber: h.display_number,
+        })));
+      }
+    };
+    load();
+  }, []);
+
+  const saveHotspot = async (h: Hotspot, index: number) => {
+    await supabase.from("hotspots").upsert({
+      id: h.id,
+      x: h.x,
+      y: h.y,
+      title: h.title,
+      description: h.description,
+      image: h.image,
+      display_number: h.displayNumber ?? index + 1,
+    });
+  };
 
   const getRelativePos = useCallback((e: React.MouseEvent) => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -64,11 +62,8 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
     };
   }, []);
 
-  const handleContainerClick = (e: React.MouseEvent) => {
-    if (!isAdding) {
-      setActiveId(null);
-      return;
-    }
+  const handleContainerClick = async (e: React.MouseEvent) => {
+    if (!isAdding) { setActiveId(null); return; }
     const pos = getRelativePos(e);
     const newHotspot: Hotspot = {
       id: Date.now().toString(),
@@ -79,6 +74,7 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
       image: null,
     };
     setHotspots((h) => [...h, newHotspot]);
+    await saveHotspot(newHotspot, hotspots.length);
     setIsAdding(false);
     setActiveId(newHotspot.id);
   };
@@ -95,10 +91,16 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
       setHotspots((prev) => prev.map((h) => (h.id === id ? { ...h, x, y } : h)));
     };
 
-    const onUp = () => {
+    const onUp = async () => {
       setDraggingId(null);
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      // Save final position after drag
+      setHotspots((prev) => {
+        const h = prev.find((h) => h.id === id);
+        if (h) saveHotspot(h, prev.indexOf(h));
+        return prev;
+      });
     };
 
     window.addEventListener("mousemove", onMove);
@@ -110,19 +112,21 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
     setEditForm({ title: h.title, description: h.description });
   };
 
-  const saveEdit = (id: string) => {
-    setHotspots((prev) =>
-      prev.map((h) => (h.id === id ? { ...h, ...editForm } : h))
-    );
+  const saveEdit = async (id: string) => {
+    const updated = hotspots.map((h) => (h.id === id ? { ...h, ...editForm } : h));
+    setHotspots(updated);
     setEditingId(null);
+    const h = updated.find((h) => h.id === id);
+    if (h) await saveHotspot(h, updated.indexOf(h));
   };
 
-  const deleteHotspot = (id: string) => {
+  const deleteHotspot = async (id: string) => {
     setHotspots((prev) => prev.filter((h) => h.id !== id));
     setActiveId(null);
+    await supabase.from("hotspots").delete().eq("id", id);
   };
 
-  const cloneHotspot = (h: Hotspot, originalIndex: number) => {
+  const cloneHotspot = async (h: Hotspot, originalIndex: number) => {
     const cloned: Hotspot = {
       ...h,
       id: Date.now().toString(),
@@ -132,56 +136,39 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
       displayNumber: h.displayNumber ?? originalIndex + 1,
     };
     setHotspots((prev) => [...prev, cloned]);
+    await saveHotspot(cloned, hotspots.length);
     setActiveId(cloned.id);
   };
 
-  const handleHotspotImageUpload = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleHotspotImageUpload = async (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setHotspots((prev) => prev.map((h) => (h.id === id ? { ...h, image: url } : h)));
+    const fileName = `hotspot-${id}-${Date.now()}.${file.name.split(".").pop()}`;
+    await supabase.storage.from("images").upload(fileName, file);
+    const { data } = supabase.storage.from("images").getPublicUrl(fileName);
+    const updated = hotspots.map((h) => (h.id === id ? { ...h, image: data.publicUrl } : h));
+    setHotspots(updated);
+    const h = updated.find((h) => h.id === id);
+    if (h) await saveHotspot(h, updated.indexOf(h));
   };
 
   const activeHotspot = hotspots.find((h) => h.id === activeId);
 
   return (
     <div className="relative flex-1 flex flex-col">
-      {/* Toolbar */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-card/60 backdrop-blur-sm">
-        <button
-          onClick={onUploadFloorPlan}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity active:scale-[0.97]"
-        >
-          <Upload className="w-3.5 h-3.5" />
-          Upload Plan
+        <button onClick={onUploadFloorPlan} className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity active:scale-[0.97]">
+          <Upload className="w-3.5 h-3.5" /> Upload Plan
         </button>
-        <button
-          onClick={() => setIsAdding(!isAdding)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-all active:scale-[0.97] ${
-            isAdding
-              ? "bg-garden-terracotta text-accent-foreground"
-              : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-          }`}
-        >
-          <Plus className="w-3.5 h-3.5" />
-          {isAdding ? "Click on plan…" : "Add Hotspot"}
+        <button onClick={() => setIsAdding(!isAdding)} className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-all active:scale-[0.97] ${isAdding ? "bg-garden-terracotta text-accent-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
+          <Plus className="w-3.5 h-3.5" /> {isAdding ? "Click on plan…" : "Add Hotspot"}
         </button>
       </div>
 
-      {/* Floor plan area */}
       <div className="flex-1 relative overflow-hidden bg-garden-cream">
-        <div
-          ref={containerRef}
-          className={`relative w-full h-full ${isAdding ? "cursor-crosshair" : "cursor-default"}`}
-          onClick={handleContainerClick}
-        >
+        <div ref={containerRef} className={`relative w-full h-full ${isAdding ? "cursor-crosshair" : "cursor-default"}`} onClick={handleContainerClick}>
           {floorPlanSrc ? (
-            <img
-              src={floorPlanSrc}
-              alt="Floor plan"
-              className="w-full h-full object-contain"
-              draggable={false}
-            />
+            <img src={floorPlanSrc} alt="Floor plan" className="w-full h-full object-contain" draggable={false} />
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
               <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center">
@@ -194,22 +181,10 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
             </div>
           )}
 
-          {/* Hotspot markers */}
           {hotspots.map((h, index) => (
-            <button
-              key={h.id}
-              className={`absolute w-7 h-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-all duration-200 z-10 flex items-center justify-center
-                ${activeId === h.id
-                  ? "bg-garden-terracotta border-garden-terracotta scale-125 shadow-lg"
-                  : "bg-garden-moss border-garden-leaf hotspot-pulse hover:scale-110"
-                }
-                ${draggingId === h.id ? "scale-150 shadow-xl cursor-grabbing" : "cursor-grab"}
-              `}
+            <button key={h.id} className={`absolute w-7 h-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-all duration-200 z-10 flex items-center justify-center ${activeId === h.id ? "bg-garden-terracotta border-garden-terracotta scale-125 shadow-lg" : "bg-garden-moss border-garden-leaf hotspot-pulse hover:scale-110"} ${draggingId === h.id ? "scale-150 shadow-xl cursor-grabbing" : "cursor-grab"}`}
               style={{ left: `${h.x}%`, top: `${h.y}%` }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setActiveId(activeId === h.id ? null : h.id);
-              }}
+              onClick={(e) => { e.stopPropagation(); setActiveId(activeId === h.id ? null : h.id); }}
               onMouseDown={(e) => handleMouseDown(e, h.id)}
             >
               <span className="text-[10px] font-bold text-primary-foreground leading-none select-none">{h.displayNumber ?? index + 1}</span>
@@ -217,86 +192,34 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
           ))}
         </div>
 
-        {/* Active hotspot popover */}
         {activeHotspot && (
-          <div
-            className="absolute z-20 w-72 bg-card rounded-xl shadow-2xl border border-border overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300"
-            style={{
-              left: `${Math.min(activeHotspot.x, 65)}%`,
-              top: `${Math.min(activeHotspot.y + 4, 60)}%`,
-            }}
+          <div className="absolute z-20 w-72 bg-card rounded-xl shadow-2xl border border-border overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300"
+            style={{ left: `${Math.min(activeHotspot.x, 65)}%`, top: `${Math.min(activeHotspot.y + 4, 60)}%` }}
             onClick={(e) => e.stopPropagation()}
           >
-            {activeHotspot.image && (
-              <img
-                src={activeHotspot.image}
-                alt={activeHotspot.title}
-                className="w-full h-36 object-cover"
-              />
-            )}
+            {activeHotspot.image && <img src={activeHotspot.image} alt={activeHotspot.title} className="w-full h-36 object-cover" />}
             <div className="p-3">
               {editingId === activeHotspot.id ? (
                 <div className="space-y-2">
-                  <input
-                    className="w-full px-2 py-1 text-sm border border-border rounded-md bg-background"
-                    value={editForm.title}
-                    onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
-                  />
-                  <textarea
-                    className="w-full px-2 py-1 text-sm border border-border rounded-md bg-background resize-none"
-                    rows={2}
-                    value={editForm.description}
-                    onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
-                  />
+                  <input className="w-full px-2 py-1 text-sm border border-border rounded-md bg-background" value={editForm.title} onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))} />
+                  <textarea className="w-full px-2 py-1 text-sm border border-border rounded-md bg-background resize-none" rows={2} value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} />
                   <div className="flex gap-1">
-                    <button
-                      onClick={() => saveEdit(activeHotspot.id)}
-                      className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-primary text-primary-foreground hover:opacity-90 active:scale-95"
-                    >
-                      <Check className="w-3 h-3" /> Save
-                    </button>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95"
-                    >
-                      Cancel
-                    </button>
+                    <button onClick={() => saveEdit(activeHotspot.id)} className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-primary text-primary-foreground hover:opacity-90 active:scale-95"><Check className="w-3 h-3" /> Save</button>
+                    <button onClick={() => setEditingId(null)} className="px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95">Cancel</button>
                   </div>
                 </div>
               ) : (
                 <>
                   <h3 className="font-display text-base text-foreground">{activeHotspot.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                    {activeHotspot.description}
-                  </p>
+                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{activeHotspot.description}</p>
                   <div className="flex gap-1 mt-3">
-                    <button
-                      onClick={() => startEditing(activeHotspot)}
-                      className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95"
-                    >
-                      <Edit2 className="w-3 h-3" /> Edit
-                    </button>
+                    <button onClick={() => startEditing(activeHotspot)} className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95"><Edit2 className="w-3 h-3" /> Edit</button>
                     <label className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95 cursor-pointer">
                       <Upload className="w-3 h-3" /> Image
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => handleHotspotImageUpload(activeHotspot.id, e)}
-                      />
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleHotspotImageUpload(activeHotspot.id, e)} />
                     </label>
-                    <button
-                      onClick={() => cloneHotspot(activeHotspot, hotspots.indexOf(activeHotspot))}
-                      className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95"
-                    >
-                      <Copy className="w-3 h-3" /> Clone
-                    </button>
-                    <button
-                      onClick={() => deleteHotspot(activeHotspot.id)}
-                      className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-destructive/10 text-destructive hover:bg-destructive/20 active:scale-95 ml-auto"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+                    <button onClick={() => cloneHotspot(activeHotspot, hotspots.indexOf(activeHotspot))} className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95"><Copy className="w-3 h-3" /> Clone</button>
+                    <button onClick={() => deleteHotspot(activeHotspot.id)} className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-destructive/10 text-destructive hover:bg-destructive/20 active:scale-95 ml-auto"><Trash2 className="w-3 h-3" /></button>
                   </div>
                 </>
               )}
