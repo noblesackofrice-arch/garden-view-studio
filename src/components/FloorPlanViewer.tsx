@@ -122,13 +122,14 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
     setActiveId(null);
   };
 
-  const cloneHotspot = (h: Hotspot) => {
+  const cloneHotspot = (h: Hotspot, originalIndex: number) => {
     const cloned: Hotspot = {
       ...h,
       id: Date.now().toString(),
       x: Math.min(h.x + 5, 95),
       y: Math.min(h.y + 5, 95),
       title: `${h.title} (copy)`,
+      displayNumber: h.displayNumber ?? originalIndex + 1,
     };
     setHotspots((prev) => [...prev, cloned]);
     setActiveId(cloned.id);
