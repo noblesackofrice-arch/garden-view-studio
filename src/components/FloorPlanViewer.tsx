@@ -122,6 +122,18 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
     setActiveId(null);
   };
 
+  const cloneHotspot = (h: Hotspot) => {
+    const cloned: Hotspot = {
+      ...h,
+      id: Date.now().toString(),
+      x: Math.min(h.x + 5, 95),
+      y: Math.min(h.y + 5, 95),
+      title: `${h.title} (copy)`,
+    };
+    setHotspots((prev) => [...prev, cloned]);
+    setActiveId(cloned.id);
+  };
+
   const handleHotspotImageUpload = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
