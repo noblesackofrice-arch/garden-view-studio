@@ -2,6 +2,12 @@ import { useState, useRef } from "react";
 import FloorPlanViewer from "@/components/FloorPlanViewer";
 import DetailSidebar from "@/components/DetailSidebar";
 import { Leaf } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 const Index = () => {
   const [floorPlanSrc, setFloorPlanSrc] = useState<string | null>(null);
@@ -9,9 +15,26 @@ const Index = () => {
 
   const handleUpload = () => fileInputRef.current?.click();
 
-  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setFloorPlanSrc(URL.createObjectURL(file));
+    if (!file) return;
+
+    const fileName = `floorplan-${Date.now()}.${file.name.split(".").pop()}`;
+
+    const { error } = await supabase.storage
+      .from("images")
+      .upload(fileName, file);
+
+    if (error) {
+      console.error("Upload failed:", error.message);
+      return;
+    }
+
+    const { data } = supabase.storage
+      .from("images")
+      .getPublicUrl(fileName);
+
+    setFloorPlanSrc(data.publicUrl);
   };
 
   return (
@@ -26,13 +49,11 @@ const Index = () => {
           <p className="text-xs text-muted-foreground">Interactive floor plan explorer</p>
         </div>
       </header>
-
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
         <FloorPlanViewer floorPlanSrc={floorPlanSrc} onUploadFloorPlan={handleUpload} />
         <DetailSidebar />
       </div>
-
       <input
         ref={fileInputRef}
         type="file"
