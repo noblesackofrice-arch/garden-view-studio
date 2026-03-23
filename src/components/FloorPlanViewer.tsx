@@ -285,6 +285,12 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
                       />
                     </label>
                     <button
+                      onClick={() => cloneHotspot(activeHotspot)}
+                      className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95"
+                    >
+                      <Copy className="w-3 h-3" /> Clone
+                    </button>
+                    <button
                       onClick={() => deleteHotspot(activeHotspot.id)}
                       className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-destructive/10 text-destructive hover:bg-destructive/20 active:scale-95 ml-auto"
                     >
