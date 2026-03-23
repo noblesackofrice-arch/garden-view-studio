@@ -13,10 +13,21 @@ const Index = () => {
   const [floorPlanSrc, setFloorPlanSrc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load saved image URL on page load
+  // Load the most recently saved image from Supabase on page load
   useEffect(() => {
-    const savedUrl = localStorage.getItem("floorPlanUrl");
-    if (savedUrl) setFloorPlanSrc(savedUrl);
+    const loadSavedImage = async () => {
+      const { data, error } = await supabase
+        .from("floor_plans")
+        .select("url")
+        .order("id", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!error && data?.url) {
+        setFloorPlanSrc(data.url);
+      }
+    };
+    loadSavedImage();
   }, []);
 
   const handleUpload = () => fileInputRef.current?.click();
@@ -27,12 +38,12 @@ const Index = () => {
 
     const fileName = `floorplan-${Date.now()}.${file.name.split(".").pop()}`;
 
-    const { error } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from("images")
       .upload(fileName, file);
 
-    if (error) {
-      console.error("Upload failed:", error.message);
+    if (uploadError) {
+      console.error("Upload failed:", uploadError.message);
       return;
     }
 
@@ -40,8 +51,16 @@ const Index = () => {
       .from("images")
       .getPublicUrl(fileName);
 
-    // Save URL to localStorage so it persists on refresh
-    localStorage.setItem("floorPlanUrl", data.publicUrl);
+    // Save URL to Supabase database so it works across all devices
+    const { error: dbError } = await supabase
+      .from("floor_plans")
+      .insert({ url: data.publicUrl });
+
+    if (dbError) {
+      console.error("Failed to save URL:", dbError.message);
+      return;
+    }
+
     setFloorPlanSrc(data.publicUrl);
   };
 
