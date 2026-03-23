@@ -14,21 +14,21 @@ const Index = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load the most recently saved image from Supabase on page load
-  useEffect(() => {
-    const loadSavedImage = async () => {
-      const { data, error } = await supabase
-        .from("floor_plans")
-        .select("url")
-        .order("id", { ascending: false })
-        .limit(1)
-        .single();
+ useEffect(() => {
+  const loadSavedImage = async () => {
+    const { data, error } = await supabase
+      .from("floor_plans")
+      .select("url")
+      .order("id", { ascending: false })
+      .limit(1)
+      .maybeSingle(); // use maybeSingle instead of single — returns null if no rows
 
-      if (!error && data?.url) {
-        setFloorPlanSrc(data.url);
-      }
-    };
-    loadSavedImage();
-  }, []);
+    if (data?.url) {
+      setFloorPlanSrc(data.url);
+    }
+  };
+  loadSavedImage();
+}, []);
 
   const handleUpload = () => fileInputRef.current?.click();
 
