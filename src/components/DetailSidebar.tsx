@@ -1,12 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronDown, Plus, Upload, Edit2, Check, Trash2, Leaf } from "lucide-react";
 import type { SidebarSection } from "@/types/floorplan";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+import { supabase } from "@/lib/supabase";
 
 export default function DetailSidebar() {
   const [sections, setSections] = useState<SidebarSection[]>([]);
