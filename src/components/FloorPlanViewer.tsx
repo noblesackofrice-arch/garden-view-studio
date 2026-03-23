@@ -1,12 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Plus, Trash2, Edit2, X, Check, Upload, Copy } from "lucide-react";
 import type { Hotspot } from "@/types/floorplan";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
+import { supabase } from "@/lib/supabase";
 
 interface Props {
   floorPlanSrc: string | null;
