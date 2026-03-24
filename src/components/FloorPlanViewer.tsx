@@ -86,24 +86,25 @@ export default function FloorPlanViewer({ floorPlanSrc }: Props) {
 >
           {floorPlanSrc ? (
             <img
-              ref={imgRef}
-              src={floorPlanSrc}
-              alt="Floor plan"
-              className="object-contain"
-              draggable={false}
-              onLoad={() => {
-                const img = imgRef.current;
-                const container = containerRef.current?.getBoundingClientRect();
-                if (!img || !container) return;
-                const imgRect = img.getBoundingClientRect();
-                setImgBounds({
-                  left: imgRect.left - container.left,
-                  top: imgRect.top - container.top,
-                  width: imgRect.width,
-                  height: imgRect.height,
-                });
-              }}
-            />
+  ref={imgRef}
+  src={floorPlanSrc}
+  alt="Floor plan"
+  className="object-contain"
+  style={{ width: "800px", height: "600px" }}
+  draggable={false}
+  onLoad={() => {
+    const img = imgRef.current;
+    const container = containerRef.current?.getBoundingClientRect();
+    if (!img || !container) return;
+    const imgRect = img.getBoundingClientRect();
+    setImgBounds({
+      left: imgRect.left - container.left,
+      top: imgRect.top - container.top,
+      width: imgRect.width,
+      height: imgRect.height,
+    });
+  }}
+/>
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
               <div className="text-center">
