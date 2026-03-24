@@ -172,7 +172,7 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
   return (
    
 
-      <div className="flex-1 relative overflow-hidden bg-garden-cream">
+      <div className="flex-1 relative overflow-hidden bg-garden-cream">      
         <div
           ref={containerRef}
-          className={`relative w-f
+         className={`relative w-full h-full ${isAdding ? "cursor-crosshair" : "cursor-default"}`}
