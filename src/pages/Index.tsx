@@ -31,7 +31,6 @@ const Index = () => {
         </div>
         <div>
           <h1 className="font-display text-xl leading-tight text-foreground">Garden Plan</h1>
-          <p className="text-xs text-muted-foreground">Interactive floor plan explorer</p>
         </div>
       </header>
       {/* Main content */}
