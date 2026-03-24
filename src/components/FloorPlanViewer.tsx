@@ -1,11 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Plus, Trash2, Edit2, Check, Upload, Copy } from "lucide-react";
+import { Trash2, Edit2, Check, Upload, Copy } from "lucide-react";
 import type { Hotspot } from "@/types/floorplan";
 import { supabase } from "@/lib/supabase";
 
 interface Props {
   floorPlanSrc: string | null;
-  onUploadFloorPlan: () => void;
 }
 
 export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Props) {
@@ -171,15 +170,7 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
   const activeHotspot = hotspots.find((h) => h.id === activeId);
 
   return (
-    <div className="relative flex-1 flex flex-col">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-card/60 backdrop-blur-sm">
-        <button onClick={onUploadFloorPlan} className="flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md bg-primary text-primary-foreground hover:opacity-90 transition-opacity active:scale-[0.97]">
-          <Upload className="w-3.5 h-3.5" /> Upload Plan
-        </button>
-        <button onClick={() => setIsAdding(!isAdding)} className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-all active:scale-[0.97] ${isAdding ? "bg-garden-terracotta text-accent-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}>
-          <Plus className="w-3.5 h-3.5" /> {isAdding ? "Click on plan…" : "Add Hotspot"}
-        </button>
-      </div>
+   
 
       <div className="flex-1 relative overflow-hidden bg-garden-cream">
         <div
