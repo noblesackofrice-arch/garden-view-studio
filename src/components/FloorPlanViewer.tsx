@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Trash2, Edit2, Check, Upload, Copy } from "lucide-react";
 import type { Hotspot } from "@/types/floorplan";
 import { supabase } from "@/lib/supabase";
@@ -64,33 +64,6 @@ export default function FloorPlanViewer({ floorPlanSrc }: Props) {
       image: h.image,
       display_number: h.displayNumber ?? index + 1,
     });
-  };
-
-  const getRelativePos = useCallback((e: React.MouseEvent) => {
-    if (!imgBounds.width || !imgBounds.height) return { x: 0, y: 0 };
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return { x: 0, y: 0 };
-    return {
-      x: ((e.clientX - rect.left - imgBounds.left) / imgBounds.width) * 100,
-      y: ((e.clientY - rect.top - imgBounds.top) / imgBounds.height) * 100,
-    };
-  }, [imgBounds]);
-
-  const handleContainerClick = async (e: React.MouseEvent) => {
-    if (!isAdding) { setActiveId(null); return; }
-    const pos = getRelativePos(e);
-    const newHotspot: Hotspot = {
-      id: Date.now().toString(),
-      x: pos.x,
-      y: pos.y,
-      title: "New Area",
-      description: "Click edit to add a description.",
-      image: null,
-    };
-    setHotspots((h) => [...h, newHotspot]);
-    await saveHotspot(newHotspot, hotspots.length);
-    setIsAdding(false);
-    setActiveId(newHotspot.id);
   };
 
   const handleMouseDown = (e: React.MouseEvent, id: string) => {
@@ -167,12 +140,11 @@ export default function FloorPlanViewer({ floorPlanSrc }: Props) {
   return (
     <div className="relative flex-1 flex flex-col">
 
-      <div className="flex-1 relative overflow-hidden bg-garden-cream">
-        <div
-          ref={containerRef}
-          className={`relative w-full h-full ${isAdding ? "cursor-crosshair" : "cursor-default"}`}
-          onClick={handleContainerClick}
-        >
+    <div className="flex-1 relative overflow-hidden bg-garden-cream">
+  <div
+    ref={containerRef}
+    className="relative w-full h-full cursor-default"
+  >
           {floorPlanSrc ? (
             <img
               ref={imgRef}
