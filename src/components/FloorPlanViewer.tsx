@@ -176,3 +176,6 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
         <div
           ref={containerRef}
          className={`relative w-full h-full ${isAdding ? "cursor-crosshair" : "cursor-default"}`}
+          </div>
+  );
+}
