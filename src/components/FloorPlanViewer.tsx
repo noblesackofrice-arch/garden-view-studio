@@ -80,16 +80,16 @@ export default function FloorPlanViewer({ floorPlanSrc }: Props) {
   return (
     <div className="relative flex-1 flex flex-col">
       <div className="flex-1 relative overflow-hidden bg-garden-cream">
-        <div
-          ref={containerRef}
-          className="relative w-full h-full cursor-default"
-        >
+      <div
+  ref={containerRef}
+  className="relative w-full h-full cursor-default flex items-center justify-center"
+>
           {floorPlanSrc ? (
             <img
               ref={imgRef}
               src={floorPlanSrc}
               alt="Floor plan"
-              className="w-full h-full object-contain"
+              className="object-contain"
               draggable={false}
               onLoad={() => {
                 const img = imgRef.current;
