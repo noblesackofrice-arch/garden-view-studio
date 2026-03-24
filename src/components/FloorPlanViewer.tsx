@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Plus, Trash2, Edit2, X, Check, Upload, Copy } from "lucide-react";
+import { Plus, Trash2, Edit2, Check, Upload, Copy } from "lucide-react";
 import type { Hotspot } from "@/types/floorplan";
 import { supabase } from "@/lib/supabase";
 
@@ -15,7 +15,9 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ title: "", description: "" });
   const [isAdding, setIsAdding] = useState(false);
+  const [imgBounds, setImgBounds] = useState({ left: 0, top: 0, width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   // Load hotspots from Supabase on mount
   useEffect(() => {
@@ -36,6 +38,25 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
     load();
   }, []);
 
+  // Update image bounds on resize
+  useEffect(() => {
+    const updateBounds = () => {
+      const img = imgRef.current;
+      const container = containerRef.current?.getBoundingClientRect();
+      if (!img || !container) return;
+      const imgRect = img.getBoundingClientRect();
+      setImgBounds({
+        left: imgRect.left - container.left,
+        top: imgRect.top - container.top,
+        width: imgRect.width,
+        height: imgRect.height,
+      });
+    };
+    updateBounds();
+    window.addEventListener("resize", updateBounds);
+    return () => window.removeEventListener("resize", updateBounds);
+  }, [floorPlanSrc]);
+
   const saveHotspot = async (h: Hotspot, index: number) => {
     await supabase.from("hotspots").upsert({
       id: h.id,
@@ -49,13 +70,14 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
   };
 
   const getRelativePos = useCallback((e: React.MouseEvent) => {
+    if (!imgBounds.width || !imgBounds.height) return { x: 0, y: 0 };
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
     return {
-      x: ((e.clientX - rect.left) / rect.width) * 100,
-      y: ((e.clientY - rect.top) / rect.height) * 100,
+      x: ((e.clientX - rect.left - imgBounds.left) / imgBounds.width) * 100,
+      y: ((e.clientY - rect.top - imgBounds.top) / imgBounds.height) * 100,
     };
-  }, []);
+  }, [imgBounds]);
 
   const handleContainerClick = async (e: React.MouseEvent) => {
     if (!isAdding) { setActiveId(null); return; }
@@ -81,8 +103,8 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
     const onMove = (ev: MouseEvent) => {
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const x = Math.max(0, Math.min(100, ((ev.clientX - rect.left) / rect.width) * 100));
-      const y = Math.max(0, Math.min(100, ((ev.clientY - rect.top) / rect.height) * 100));
+      const x = Math.max(0, Math.min(100, ((ev.clientX - rect.left - imgBounds.left) / imgBounds.width) * 100));
+      const y = Math.max(0, Math.min(100, ((ev.clientY - rect.top - imgBounds.top) / imgBounds.height) * 100));
       setHotspots((prev) => prev.map((h) => (h.id === id ? { ...h, x, y } : h)));
     };
 
@@ -90,7 +112,6 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
       setDraggingId(null);
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
-      // Save final position after drag
       setHotspots((prev) => {
         const h = prev.find((h) => h.id === id);
         if (h) saveHotspot(h, prev.indexOf(h));
@@ -161,67 +182,6 @@ export default function FloorPlanViewer({ floorPlanSrc, onUploadFloorPlan }: Pro
       </div>
 
       <div className="flex-1 relative overflow-hidden bg-garden-cream">
-        <div ref={containerRef} className={`relative w-full h-full ${isAdding ? "cursor-crosshair" : "cursor-default"}`} onClick={handleContainerClick}>
-          {floorPlanSrc ? (
-            <img src={floorPlanSrc} alt="Floor plan" className="w-full h-full object-contain" draggable={false} />
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
-              <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center">
-                <Upload className="w-8 h-8 text-garden-sage" />
-              </div>
-              <div className="text-center">
-                <p className="font-display text-lg text-foreground">Upload your floor plan</p>
-                <p className="text-sm mt-1">Click "Upload Plan" to get started</p>
-              </div>
-            </div>
-          )}
-
-          {hotspots.map((h, index) => (
-            <button key={h.id} className={`absolute w-7 h-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 transition-all duration-200 z-10 flex items-center justify-center ${activeId === h.id ? "bg-garden-terracotta border-garden-terracotta scale-125 shadow-lg" : "bg-garden-moss border-garden-leaf hotspot-pulse hover:scale-110"} ${draggingId === h.id ? "scale-150 shadow-xl cursor-grabbing" : "cursor-grab"}`}
-              style={{ left: `${h.x}%`, top: `${h.y}%` }}
-              onClick={(e) => { e.stopPropagation(); setActiveId(activeId === h.id ? null : h.id); }}
-              onMouseDown={(e) => handleMouseDown(e, h.id)}
-            >
-              <span className="text-[10px] font-bold text-primary-foreground leading-none select-none">{h.displayNumber ?? index + 1}</span>
-            </button>
-          ))}
-        </div>
-
-        {activeHotspot && (
-          <div className="absolute z-20 w-72 bg-card rounded-xl shadow-2xl border border-border overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300"
-            style={{ left: `${Math.min(activeHotspot.x, 65)}%`, top: `${Math.min(activeHotspot.y + 4, 60)}%` }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {activeHotspot.image && <img src={activeHotspot.image} alt={activeHotspot.title} className="w-full h-36 object-cover" />}
-            <div className="p-3">
-              {editingId === activeHotspot.id ? (
-                <div className="space-y-2">
-                  <input className="w-full px-2 py-1 text-sm border border-border rounded-md bg-background" value={editForm.title} onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))} />
-                  <textarea className="w-full px-2 py-1 text-sm border border-border rounded-md bg-background resize-none" rows={2} value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} />
-                  <div className="flex gap-1">
-                    <button onClick={() => saveEdit(activeHotspot.id)} className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-primary text-primary-foreground hover:opacity-90 active:scale-95"><Check className="w-3 h-3" /> Save</button>
-                    <button onClick={() => setEditingId(null)} className="px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95">Cancel</button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <h3 className="font-display text-base text-foreground">{activeHotspot.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{activeHotspot.description}</p>
-                  <div className="flex gap-1 mt-3">
-                    <button onClick={() => startEditing(activeHotspot)} className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95"><Edit2 className="w-3 h-3" /> Edit</button>
-                    <label className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95 cursor-pointer">
-                      <Upload className="w-3 h-3" /> Image
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleHotspotImageUpload(activeHotspot.id, e)} />
-                    </label>
-                    <button onClick={() => cloneHotspot(activeHotspot, hotspots.indexOf(activeHotspot))} className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95"><Copy className="w-3 h-3" /> Clone</button>
-                    <button onClick={() => deleteHotspot(activeHotspot.id)} className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-destructive/10 text-destructive hover:bg-destructive/20 active:scale-95 ml-auto"><Trash2 className="w-3 h-3" /></button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+        <div
+          ref={containerRef}
+          className={`relative w-f
