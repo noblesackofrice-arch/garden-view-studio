@@ -33,6 +33,23 @@ export default function FloorPlanViewer({ floorPlanSrc }: Props) {
     load();
   }, []);
 
+  useEffect(() => {
+    const updateBounds = () => {
+      const img = imgRef.current;
+      const container = containerRef.current?.getBoundingClientRect();
+      if (!img || !container) return;
+      const imgRect = img.getBoundingClientRect();
+      setImgBounds({
+        left: imgRect.left - container.left,
+        top: imgRect.top - container.top,
+        width: imgRect.width,
+        height: imgRect.height,
+      });
+    };
+    window.addEventListener("resize", updateBounds);
+    return () => window.removeEventListener("resize", updateBounds);
+  }, []);
+
   const saveHotspot = async (h: Hotspot, index: number) => {
     await supabase.from("hotspots").upsert({
       id: h.id,
@@ -80,31 +97,31 @@ export default function FloorPlanViewer({ floorPlanSrc }: Props) {
   return (
     <div className="relative flex-1 flex flex-col">
       <div className="flex-1 relative overflow-hidden bg-garden-cream">
-      <div
-  ref={containerRef}
-  className="relative w-full h-full cursor-default flex items-center justify-center"
->
+        <div
+          ref={containerRef}
+          className="relative w-full h-full cursor-default flex items-center justify-center"
+        >
           {floorPlanSrc ? (
             <img
-  ref={imgRef}
-  src={floorPlanSrc}
-  alt="Floor plan"
-  className="object-contain"
-  style={{ width: "800px", height: "600px" }}
-  draggable={false}
-  onLoad={() => {
-    const img = imgRef.current;
-    const container = containerRef.current?.getBoundingClientRect();
-    if (!img || !container) return;
-    const imgRect = img.getBoundingClientRect();
-    setImgBounds({
-      left: imgRect.left - container.left,
-      top: imgRect.top - container.top,
-      width: imgRect.width,
-      height: imgRect.height,
-    });
-  }}
-/>
+              ref={imgRef}
+              src={floorPlanSrc}
+              alt="Floor plan"
+              className="object-contain"
+              style={{ width: "800px", height: "600px" }}
+              draggable={false}
+              onLoad={() => {
+                const img = imgRef.current;
+                const container = containerRef.current?.getBoundingClientRect();
+                if (!img || !container) return;
+                const imgRect = img.getBoundingClientRect();
+                setImgBounds({
+                  left: imgRect.left - container.left,
+                  top: imgRect.top - container.top,
+                  width: imgRect.width,
+                  height: imgRect.height,
+                });
+              }}
+            />
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
               <div className="text-center">
