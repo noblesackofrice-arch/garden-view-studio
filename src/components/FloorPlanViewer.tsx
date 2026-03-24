@@ -11,7 +11,6 @@ export default function FloorPlanViewer({ floorPlanSrc }: Props) {
   const [hotspots, setHotspots] = useState<Hotspot[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [isAdding, setIsAdding] = useState(false);
   const [imgBounds, setImgBounds] = useState({ left: 0, top: 0, width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -69,6 +68,7 @@ export default function FloorPlanViewer({ floorPlanSrc }: Props) {
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   };
+
   const deleteHotspot = async (id: string) => {
     setHotspots((prev) => prev.filter((h) => h.id !== id));
     setActiveId(null);
@@ -79,12 +79,11 @@ export default function FloorPlanViewer({ floorPlanSrc }: Props) {
 
   return (
     <div className="relative flex-1 flex flex-col">
-
-    <div className="flex-1 relative overflow-hidden bg-garden-cream">
-  <div
-    ref={containerRef}
-    className="relative w-full h-full cursor-default"
-  >
+      <div className="flex-1 relative overflow-hidden bg-garden-cream">
+        <div
+          ref={containerRef}
+          className="relative w-full h-full cursor-default"
+        >
           {floorPlanSrc ? (
             <img
               ref={imgRef}
@@ -107,9 +106,6 @@ export default function FloorPlanViewer({ floorPlanSrc }: Props) {
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground">
-              <div className="w-20 h-20 rounded-2xl bg-secondary flex items-center justify-center">
-                <Upload className="w-8 h-8 text-garden-sage" />
-              </div>
               <div className="text-center">
                 <p className="font-display text-lg text-foreground">No floor plan uploaded</p>
                 <p className="text-sm mt-1">Contact the administrator to upload a plan</p>
@@ -150,18 +146,16 @@ export default function FloorPlanViewer({ floorPlanSrc }: Props) {
               <img src={activeHotspot.image} alt={activeHotspot.title} className="w-full h-36 object-cover" />
             )}
             <div className="p-3">
-              {editingId === activeHotspot.id ? (
-                <>
-                  <h3 className="font-display text-base text-foreground">{activeHotspot.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{activeHotspot.description}</p>
-                  <div className="flex gap-1 mt-3">
-                  </div>
-                    <button onClick={() => deleteHotspot(activeHotspot.id)} className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-destructive/10 text-destructive hover:bg-destructive/20 active:scale-95 ml-auto">
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                </>
-              )}
+              <h3 className="font-display text-base text-foreground">{activeHotspot.title}</h3>
+              <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{activeHotspot.description}</p>
+              <div className="flex gap-1 mt-3">
+                <button
+                  onClick={() => deleteHotspot(activeHotspot.id)}
+                  className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-destructive/10 text-destructive hover:bg-destructive/20 active:scale-95 ml-auto"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
             </div>
           </div>
         )}
