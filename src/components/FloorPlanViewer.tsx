@@ -166,14 +166,6 @@ export default function FloorPlanViewer({ floorPlanSrc }: Props) {
 
   return (
     <div className="relative flex-1 flex flex-col">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-card/60 backdrop-blur-sm">
-        <button
-          onClick={() => setIsAdding(!isAdding)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md transition-all active:scale-[0.97] ${isAdding ? "bg-garden-terracotta text-accent-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}
-        >
-          {isAdding ? "Click on plan…" : "Add Hotspot"}
-        </button>
-      </div>
 
       <div className="flex-1 relative overflow-hidden bg-garden-cream">
         <div
