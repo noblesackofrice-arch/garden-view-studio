@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Trash2, Edit2, Check, Upload, Copy } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import type { Hotspot } from "@/types/floorplan";
 import { supabase } from "@/lib/supabase";
 
@@ -11,8 +11,6 @@ export default function FloorPlanViewer({ floorPlanSrc }: Props) {
   const [hotspots, setHotspots] = useState<Hotspot[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ title: "", description: "" });
   const [isAdding, setIsAdding] = useState(false);
   const [imgBounds, setImgBounds] = useState({ left: 0, top: 0, width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -35,24 +33,6 @@ export default function FloorPlanViewer({ floorPlanSrc }: Props) {
     };
     load();
   }, []);
-
-  useEffect(() => {
-    const updateBounds = () => {
-      const img = imgRef.current;
-      const container = containerRef.current?.getBoundingClientRect();
-      if (!img || !container) return;
-      const imgRect = img.getBoundingClientRect();
-      setImgBounds({
-        left: imgRect.left - container.left,
-        top: imgRect.top - container.top,
-        width: imgRect.width,
-        height: imgRect.height,
-      });
-    };
-    updateBounds();
-    window.addEventListener("resize", updateBounds);
-    return () => window.removeEventListener("resize", updateBounds);
-  }, [floorPlanSrc]);
 
   const saveHotspot = async (h: Hotspot, index: number) => {
     await supabase.from("hotspots").upsert({
@@ -89,50 +69,10 @@ export default function FloorPlanViewer({ floorPlanSrc }: Props) {
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
   };
-
-  const startEditing = (h: Hotspot) => {
-    setEditingId(h.id);
-    setEditForm({ title: h.title, description: h.description });
-  };
-
-  const saveEdit = async (id: string) => {
-    const updated = hotspots.map((h) => (h.id === id ? { ...h, ...editForm } : h));
-    setHotspots(updated);
-    setEditingId(null);
-    const h = updated.find((h) => h.id === id);
-    if (h) await saveHotspot(h, updated.indexOf(h));
-  };
-
   const deleteHotspot = async (id: string) => {
     setHotspots((prev) => prev.filter((h) => h.id !== id));
     setActiveId(null);
     await supabase.from("hotspots").delete().eq("id", id);
-  };
-
-  const cloneHotspot = async (h: Hotspot, originalIndex: number) => {
-    const cloned: Hotspot = {
-      ...h,
-      id: Date.now().toString(),
-      x: Math.min(h.x + 5, 95),
-      y: Math.min(h.y + 5, 95),
-      title: `${h.title} (copy)`,
-      displayNumber: h.displayNumber ?? originalIndex + 1,
-    };
-    setHotspots((prev) => [...prev, cloned]);
-    await saveHotspot(cloned, hotspots.length);
-    setActiveId(cloned.id);
-  };
-
-  const handleHotspotImageUpload = async (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const fileName = `hotspot-${id}-${Date.now()}.${file.name.split(".").pop()}`;
-    await supabase.storage.from("images").upload(fileName, file);
-    const { data } = supabase.storage.from("images").getPublicUrl(fileName);
-    const updated = hotspots.map((h) => (h.id === id ? { ...h, image: data.publicUrl } : h));
-    setHotspots(updated);
-    const h = updated.find((h) => h.id === id);
-    if (h) await saveHotspot(h, updated.indexOf(h));
   };
 
   const activeHotspot = hotspots.find((h) => h.id === activeId);
@@ -211,42 +151,11 @@ export default function FloorPlanViewer({ floorPlanSrc }: Props) {
             )}
             <div className="p-3">
               {editingId === activeHotspot.id ? (
-                <div className="space-y-2">
-                  <input
-                    className="w-full px-2 py-1 text-sm border border-border rounded-md bg-background"
-                    value={editForm.title}
-                    onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
-                  />
-                  <textarea
-                    className="w-full px-2 py-1 text-sm border border-border rounded-md bg-background resize-none"
-                    rows={2}
-                    value={editForm.description}
-                    onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
-                  />
-                  <div className="flex gap-1">
-                    <button onClick={() => saveEdit(activeHotspot.id)} className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-primary text-primary-foreground hover:opacity-90 active:scale-95">
-                      <Check className="w-3 h-3" /> Save
-                    </button>
-                    <button onClick={() => setEditingId(null)} className="px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95">
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
                 <>
                   <h3 className="font-display text-base text-foreground">{activeHotspot.title}</h3>
                   <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{activeHotspot.description}</p>
                   <div className="flex gap-1 mt-3">
-                    <button onClick={() => startEditing(activeHotspot)} className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95">
-                      <Edit2 className="w-3 h-3" /> Edit
-                    </button>
-                    <label className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95 cursor-pointer">
-                      <Upload className="w-3 h-3" /> Image
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleHotspotImageUpload(activeHotspot.id, e)} />
-                    </label>
-                    <button onClick={() => cloneHotspot(activeHotspot, hotspots.indexOf(activeHotspot))} className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-95">
-                      <Copy className="w-3 h-3" /> Clone
-                    </button>
+                  </div>
                     <button onClick={() => deleteHotspot(activeHotspot.id)} className="flex items-center gap-1 px-2 py-1 text-xs rounded bg-destructive/10 text-destructive hover:bg-destructive/20 active:scale-95 ml-auto">
                       <Trash2 className="w-3 h-3" />
                     </button>
